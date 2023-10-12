@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "A workout recorder application",
   "scripts": {
-    "start": "parcel index.html"
+    "start": "parcel index.html",
+    "build": "parcel build index.html --dist-dir ./dist"
   },
   "author": "Abdul Rhman",
   "license": "ISC",
