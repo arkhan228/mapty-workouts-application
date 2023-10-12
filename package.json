@@ -1,0 +1,13 @@
+{
+  "name": "mapty",
+  "version": "1.0.0",
+  "description": "A workout recorder application",
+  "scripts": {
+    "start": "parcel index.html"
+  },
+  "author": "Abdul Rhman",
+  "license": "ISC",
+  "dependencies": {
+    "parcel": "^2.10.0"
+  }
+}
