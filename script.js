@@ -316,14 +316,15 @@ class App {
     let html = `
       <li class="workout workout--${workout.type}" data-id="${workout.id}">
       <h2 class="workout__title">${workout.description}</h2>
-      <div class="dropdown">
-        <button class="dropbtn">&hellip;</button>
-        <div class="dropdown--content">
-          <a class="hover edit">Edit</a>
-          <a class="hover delete">Delete</a>
-          <a class="hover delete__all">Delete All</a>
-          <a class="hover sort">Sort</a>
-        </div>
+      <div class="btn_container">
+        <svg>
+          <use href="icons.svg#icon-sort"></use>
+        </svg>
+      <button class="delete-all">
+        <svg>
+          <use href="icons.svg#icon-delete-all"></use>
+        </svg>
+      </button>
       </div>
           
           <div class="workout__details">
@@ -531,3 +532,14 @@ class App {
 }
 
 const app = new App();
+
+/*
+      <div class="dropdown">
+        <button class="dropbtn">&hellip;</button>
+        <div class="dropdown--content">
+          <a class="hover edit">Edit</a>
+          <a class="hover delete">Delete</a>
+          <a class="hover delete__all">Delete All</a>
+          <a class="hover sort">Sort</a>
+        </div>
+      </div> */
