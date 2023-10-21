@@ -9,6 +9,8 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 const invalidMessage = document.getElementById('message');
+const sidebar = document.querySelector('.sidebar');
+const sort = document.querySelector('.sort');
 
 let map, mapEvent;
 
@@ -77,10 +79,11 @@ class App {
   #mapZoomLvl = 13;
   #mapEvent;
   #workouts = [];
+  #layers = [];
   #workoutEl;
   #clickedWorkout;
   #index;
-  #isSorted = false;
+  #editEl;
   #add = true;
   #edit = false;
 
@@ -102,9 +105,16 @@ class App {
       this._deleteAllWorkouts.bind(this)
     );
 
+    containerWorkouts.addEventListener('click', this._editWorkout.bind(this));
+    this._renderBtns();
+    containerWorkouts.addEventListener(
+      'click',
+      this._displaySortOptions.bind(this)
+    );
+
     containerWorkouts.addEventListener('click', this._sortWorkouts.bind(this));
 
-    containerWorkouts.addEventListener('click', this._editWorkout.bind(this));
+    sidebar.addEventListener('click', this._hideSortOptions);
   }
 
   _getPosition() {
@@ -122,7 +132,8 @@ class App {
     const { latitude } = position.coords;
     const { longitude } = position.coords;
 
-    const coords = [latitude, longitude];
+    const coords = [27.1973431, 74.3338202];
+    // const coords = [latitude, longitude];
 
     this.#map = L.map('map').setView(coords, this.#mapZoomLvl);
     L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -138,6 +149,7 @@ class App {
 
   _showForm(mapE) {
     this.#mapEvent = mapE;
+    form.style.display = 'grid';
     form.classList.remove('hidden');
     inputDistance.focus();
   }
@@ -152,7 +164,7 @@ class App {
 
     form.style.display = 'none';
     form.classList.add('hidden');
-    setTimeout(() => (form.style.display = 'grid'), 1000);
+    // setTimeout(() => (form.style.display = 'grid'), 1000);
   }
 
   _toggleElevationField() {
@@ -289,11 +301,23 @@ class App {
     // Set local storage to all workouts
     this._setLocalStorage();
 
-    location.reload();
+    // Updating the workout in rendered list, if it was an edit
+    if (this.#edit) this._updateRenderedWorkout(workout);
+
+    // Rendering the overview buttons if its first workout
+    this._renderBtns();
+  }
+
+  _updateRenderedWorkout(workout) {
+    const newMarkup = this._generateMarkup(workout);
+    const newDom = document.createRange().createContextualFragment(newMarkup);
+    containerWorkouts.replaceChild(newDom, this.#editEl);
+    this.#edit = false;
+    this.#add = true;
   }
 
   _renderWorkoutMarker(workout) {
-    L.marker(workout.coords)
+    let layer = L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -310,43 +334,63 @@ class App {
           : `🚴 ${workout.description}`
       )
       .openPopup();
+    this.#layers.push(layer);
   }
 
-  _renderWorkout(workout) {
+  _renderBtns() {
+    const markup = `
+            <div class="overview_container">
+                <button class="btn sort">Sort</button>
+                <div class="options">
+                  <button class="btn btn_sort distance">Distance</button>
+                  <button class="btn btn_sort duration">Duration</button>
+                  <button class="btn btn_sort time">Time</button>
+                </div>
+              <button class="btn delete_all">Delete All</button>
+            </div>
+    `;
+    const overviewElement = document.querySelector('.overview_container');
+
+    if (this.#workouts.length && !overviewElement)
+      containerWorkouts.insertAdjacentHTML('afterbegin', markup);
+
+    // Removing overview if it exists and there are no workouts
+    if (!this.#workouts.length && overviewElement)
+      containerWorkouts.removeChild(overviewElement);
+  }
+
+  _generateMarkup(workout) {
     let html = `
-      <li class="workout workout--${workout.type}" data-id="${workout.id}">
+    <li
+      class="workout workout--${workout.type}"
+      data-id="${workout.id}"
+    >
       <h2 class="workout__title">${workout.description}</h2>
-      <div class="btn_container">
-        <svg>
-          <use href="icons.svg#icon-sort"></use>
-        </svg>
-      <button class="delete-all">
-        <svg>
-          <use href="icons.svg#icon-delete-all"></use>
-        </svg>
-      </button>
+      <div class="individual_container">
+        <button class="btn edit">Edit</button>
+        <button class="btn delete">Delete</button>
       </div>
-          
-          <div class="workout__details">
-            <span class="workout__icon">${
-              workout.type === 'running' ? '🏃' : '🚴'
-            }</span>
-            <span class="workout__value">${workout.distance}</span>
-            <span class="workout__unit">km</span>
-          </div>
-          <div class="workout__details">
-            <span class="workout__icon">⏱</span>
-            <span class="workout__value">${workout.duration}</span>
-            <span class="workout__unit">min</span>
-          </div>`;
+
+      <div class="workout__details">
+        <span class="workout__icon"
+          >${workout.type === 'running' ? '🏃' : '🚴'}</span
+        >
+        <span class="workout__value">${workout.distance}</span>
+        <span class="workout__unit">km</span>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">⏱</span>
+        <span class="workout__value">${workout.duration}</span>
+        <span class="workout__unit">min</span>
+      </div>`;
 
     if (workout.type === 'running')
       html += `
       <div class="workout__details">
         <span class="workout__icon">⚡️</span>
         <span class="workout__value">${workout.pace}</span>
-       <span class="workout__unit">min/km</span>
-      </div>
+        <span class="workout__unit">min/km</span>
+      </div>  
       <div class="workout__details">
         <span class="workout__icon">🦶🏼</span>
         <span class="workout__value">${workout.cadence}</span>
@@ -356,19 +400,23 @@ class App {
 
     if (workout.type === 'cycling')
       html += `
-        <div class="workout__details">
-          <span class="workout__icon">⚡️</span>
-          <span class="workout__value">${workout.speed}</span>
-          <span class="workout__unit">km/h</span>
-        </div>
-        <div class="workout__details">
-          <span class="workout__icon">⛰</span>
-          <span class="workout__value">${workout.elevationGain}</span>
-          <span class="workout__unit">m</span>
-        </div>
-      </li> -->`;
+      <div class="workout__details">
+        <span class="workout__icon">⚡️</span>
+        <span class="workout__value">${workout.speed}</span>
+        <span class="workout__unit">km/h</span>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">⛰</span>
+        <span class="workout__value">${workout.elevationGain}</span>
+        <span class="workout__unit">m</span>
+      </div>
+    </li>`;
 
-    form.insertAdjacentHTML('afterend', html);
+    return html;
+  }
+
+  _renderWorkout(workout) {
+    form.insertAdjacentHTML('afterend', this._generateMarkup(workout));
   }
 
   _moveToPopup(e) {
@@ -434,54 +482,56 @@ class App {
   _updateLocalStorage() {
     localStorage.removeItem('workouts');
     localStorage.setItem('workouts', JSON.stringify(this.#workouts));
-    location.reload();
   }
 
   _editWorkout(e) {
     // Handles reopening the form with previous values
     // Rest in new workout
-    if (e.target.classList.contains('edit')) {
-      this.#add = false;
-      this.#edit = true;
+    const btn = e.target.closest('.edit');
+    if (!btn) return;
 
-      this.#clickedWorkout = this.#workouts.find(
-        work => work.id === this.#workoutEl.dataset.id
-      );
+    this.#add = false;
+    this.#edit = true;
+    this.#editEl = this.#workoutEl;
 
-      this.#index = this.#workouts.indexOf(this.#clickedWorkout);
+    // Finding out the workout that was clicked
+    this.#clickedWorkout = this.#workouts.find(
+      work => work.id === this.#workoutEl.dataset.id
+    );
 
-      // Handling running workouts
-      if (this.#clickedWorkout.type === 'running') {
-        inputType.value = this.#clickedWorkout.type;
-        inputDistance.value = this.#clickedWorkout.distance;
-        inputDuration.value = this.#clickedWorkout.duration;
-        inputCadence.value = this.#clickedWorkout.cadence;
-      }
+    this.#index = this.#workouts.indexOf(this.#clickedWorkout);
 
-      // Handling cycling workouts
-      if (this.#clickedWorkout.type === 'cycling') {
-        document
-          .querySelector('.form__input--cadence')
-          .closest('.form__row')
-          .classList.add('form__row--hidden');
-        document
+    // Handling running workouts
+    if (this.#clickedWorkout.type === 'running') {
+      inputCadence.closest('.form__row').classList.remove('form__row--hidden');
 
-          .querySelector('.form__input--elevation')
-          .closest('.form__row')
-          .classList.remove('form__row--hidden');
+      inputElevation.closest('.form__row').classList.add('form__row--hidden');
 
-        inputType.value = this.#clickedWorkout.type;
-        inputDistance.value = this.#clickedWorkout.distance;
-        inputDuration.value = this.#clickedWorkout.duration;
-        inputElevation.value = this.#clickedWorkout.elevationGain;
-      }
-      this._showForm();
+      inputType.value = this.#clickedWorkout.type;
+      inputDistance.value = this.#clickedWorkout.distance;
+      inputDuration.value = this.#clickedWorkout.duration;
+      inputCadence.value = this.#clickedWorkout.cadence;
     }
+
+    // Handling cycling workouts
+    if (this.#clickedWorkout.type === 'cycling') {
+      inputCadence.closest('.form__row').classList.add('form__row--hidden');
+
+      inputElevation
+        .closest('.form__row')
+        .classList.remove('form__row--hidden');
+
+      inputType.value = this.#clickedWorkout.type;
+      inputDistance.value = this.#clickedWorkout.distance;
+      inputDuration.value = this.#clickedWorkout.duration;
+      inputElevation.value = this.#clickedWorkout.elevationGain;
+    }
+    this._showForm();
   }
 
   _deleteWorkout(e) {
     // this.#workoutEl = e.target.closest('.workout');
-    if (e.target.classList.contains('delete')) {
+    if (e.target.closest('.delete')) {
       const clickedWorkout = this.#workouts.find(
         work => work.id === this.#workoutEl.dataset.id
       );
@@ -490,15 +540,36 @@ class App {
 
       // Delete workouts from local storage
       this._updateLocalStorage();
+
+      // Workout element to be deleted
+      const clickedWorkoutEl = e.target.closest('.workout');
+      e.target.closest('.workouts').removeChild(clickedWorkoutEl);
+      this.#layers[index].remove();
+      this.#layers.splice(index, 1);
+      console.log(index, this.#layers, this.#workouts);
     }
+    this._renderBtns();
   }
 
   _deleteAllWorkouts(e) {
-    if (e.target.classList.contains('delete__all')) {
+    if (e.target.classList.contains('delete_all')) {
       this.#workouts = [];
+      this._removeElementsByClass('workout');
+      this.#layers.forEach(layer => layer.remove());
+      this._renderBtns();
 
       // Delete workouts from local storage
       this._updateLocalStorage();
+    }
+  }
+  _displaySortOptions(e) {
+    const btn = e.target.closest('.sort');
+    if (btn) document.querySelector('.options').classList.toggle('show');
+  }
+
+  _hideSortOptions(e) {
+    if (!e.target.closest('.btn_sort') && !e.target.closest('.sort')) {
+      document.querySelector('.options')?.classList.remove('show');
     }
   }
 
@@ -511,18 +582,26 @@ class App {
   }
 
   _sortWorkouts(e) {
-    const sortedWorkouts = this.#workouts
+    const sortedDistance = this.#workouts
       .slice(0)
       .sort((a, b) => a.distance - b.distance);
 
-    const works = this.#isSorted ? this.#workouts : sortedWorkouts;
+    const sortedDuration = this.#workouts
+      .slice(0)
+      .sort((a, b) => a.duration - b.duration);
 
-    if (e.target.classList.contains('sort')) {
+    if (e.target?.classList.contains('distance')) {
       this._removeElementsByClass('workout');
-      works.forEach(work => this._renderWorkout(work));
-      this.#isSorted = !this.#isSorted;
+      sortedDistance.forEach(work => this._renderWorkout(work));
     }
-    console.log(this.#add, this.#edit, this.#workouts);
+    if (e.target?.classList.contains('duration')) {
+      this._removeElementsByClass('workout');
+      sortedDuration.forEach(work => this._renderWorkout(work));
+    }
+    if (e.target?.classList.contains('time')) {
+      this._removeElementsByClass('workout');
+      this.#workouts.forEach(work => this._renderWorkout(work));
+    }
   }
 
   // reset() {
@@ -532,7 +611,7 @@ class App {
 }
 
 const app = new App();
-
+// app.reset();
 /*
       <div class="dropdown">
         <button class="dropbtn">&hellip;</button>

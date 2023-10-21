@@ -243,81 +243,66 @@ a:visited {
   border-left: 5px solid var(--color-brand--1);
 }
 
-/* Dropdown Button */
-/* .dropbtn {
-  border: 2px solid #9fa2a4;
-  width: 40px;
-  border-radius: 10px;
-  background-color: #46bed3;
-  padding-bottom: 6px;
+/* Sort Delete All buttons container */
+.individual_container {
+  display: flex;
+  gap: 1rem;
+}
+
+/* .sort_option {
+  display: flex;
 } */
 
-/* The container <div> - needed to position the dropdown content */
-.dropdown {
-  position: relative;
-  display: inline-block;
-
-  grid-column: -1;
+.sort {
+  z-index: 10;
 }
 
-/* Dropdown Content (Hidden by Default) */
-.dropdown--content {
+.options {
   display: none;
-  position: absolute;
-  left: -370%;
-  background-color: #937777;
-  min-width: 160px;
-  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-  z-index: 1;
+  position: relative;
+  left: -55%;
 }
 
-/* Links inside the dropdown */
-.dropdown--content a {
-  color: black;
-  padding: 12px;
-  text-decoration: none;
-  display: block;
-  width: max-content;
-}
-
-/* Change color of dropdown links on hover */
-.dropdown--content a:hover {
-  background-color: #ddd;
-  border-radius: 20px;
-}
-
-/* Show the dropdown menu on hover */
-.dropdown:hover .dropdown--content {
+.show {
   display: flex;
-  border-radius: 20px;
+  animation: move 0.5s linear forwards;
 }
 
-/* Change the background color of the dropdown button when the dropdown content is shown */
-.dropdown:hover .dropbtn {
-  background-color: #50996f;
-}
-
-.btn_container {
-  display:flex;
-  gap: 1rem;
-  /* grid-column: -1; */
-
-  svg {
-    height: 4rem;
-    width: 4rem;
-    fill: #f3aeae;
+@keyframes move {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 
-.delete-all {
-  
+/* Edit Delete buttons container */
+.overview_container {
+  display: flex;
+  margin-bottom: 0.5rem;
+  justify-content: space-between;
+}
+
+.btn {
   border: none;
   cursor: pointer;
-  height: 3rem;
-  width: 4rem;
   border-radius: 1rem;
-  background-color: var(--color-dark--1);
-  /* background-color: #89b9c2; */
-  /* position: absolute; */
-  
+  padding: 0.6rem;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande',
+    'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  background-color: var(--color-brand--1);
+}
+
+.btn:hover {
+  background-color: var(--color-brand--2);
+}
+
+.btn_sort {
+  transform: scale(0.85);
+  background-color: var(--color-brand--2);
+}
+
+.btn_sort:hover {
+  background-color: var(--color-brand--1);
 }
