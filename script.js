@@ -68,10 +68,6 @@ class Cycling extends Workout {
   }
 }
 
-// const run1 = new Running([27, 12], 2, 10, 33);
-// console.log(run1);
-// console.log(run1.calcPace());
-
 /////////////////////////////////////////
 // APPLICATION ARCHITECTURE
 class App {
@@ -79,19 +75,20 @@ class App {
   #mapZoomLvl = 13;
   #mapEvent;
   #workouts = [];
-  #layers = [];
-  #workoutEl;
-  #clickedWorkout;
-  #index;
-  #editEl;
-  #add = true;
-  #edit = false;
+  #markers = []; // Array for saving markers on map
+  #workoutEl; // Workout element that was clicked
+  #clickedWorkout; // Workout that was clicked
+  #index; // Index of clicked workout
+  #editEl; // Workout element that is being edited
+  #add = true; // When form is for a new workout
+  #edit = false; // When form is for editing an existing workout
 
   constructor() {
     this._getPosition();
 
     this._getLocalStorage();
 
+    // Submitting workout form
     form.addEventListener('submit', this._newWorkout.bind(this));
 
     inputType.addEventListener('change', this._toggleElevationField);
@@ -107,6 +104,7 @@ class App {
 
     containerWorkouts.addEventListener('click', this._editWorkout.bind(this));
     this._renderBtns();
+
     containerWorkouts.addEventListener(
       'click',
       this._displaySortOptions.bind(this)
@@ -114,6 +112,7 @@ class App {
 
     containerWorkouts.addEventListener('click', this._sortWorkouts.bind(this));
 
+    // Hide sort options when clicked somewhere else
     sidebar.addEventListener('click', this._hideSortOptions);
   }
 
@@ -132,8 +131,7 @@ class App {
     const { latitude } = position.coords;
     const { longitude } = position.coords;
 
-    const coords = [27.1973431, 74.3338202];
-    // const coords = [latitude, longitude];
+    const coords = [latitude, longitude];
 
     this.#map = L.map('map').setView(coords, this.#mapZoomLvl);
     L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -164,7 +162,6 @@ class App {
 
     form.style.display = 'none';
     form.classList.add('hidden');
-    // setTimeout(() => (form.style.display = 'grid'), 1000);
   }
 
   _toggleElevationField() {
@@ -175,10 +172,12 @@ class App {
 
   _newWorkout(e) {
     e.preventDefault();
+    // Input validation
     const validateInputs = (...inputs) =>
       inputs.every(inp => Number.isFinite(inp));
     const positiveInputs = (...inputs) => inputs.every(inp => inp > 0);
 
+    // Invalid inputs message
     const displayMessage = function () {
       form.style.height = '11.25rem';
       invalidMessage.classList.add('show__message');
@@ -202,8 +201,7 @@ class App {
       if (type === 'running') {
         const cadence = +inputCadence.value;
 
-        // Validate data0.\
-
+        // Validate data
         if (
           !validateInputs(distance, duration, cadence) ||
           !positiveInputs(distance, duration, cadence)
@@ -292,10 +290,11 @@ class App {
         );
       }
 
+      // Changing the edited workout
       this.#workouts[this.#index] = workout;
     }
 
-    // hide form after submit
+    // hide form after submition
     this._hideForm();
 
     // Set local storage to all workouts
@@ -308,16 +307,20 @@ class App {
     this._renderBtns();
   }
 
+  // Re-rendering the edited workout with new data
   _updateRenderedWorkout(workout) {
     const newMarkup = this._generateMarkup(workout);
     const newDom = document.createRange().createContextualFragment(newMarkup);
     containerWorkouts.replaceChild(newDom, this.#editEl);
+
+    // Resetting form to a new workout
     this.#edit = false;
     this.#add = true;
   }
 
+  // Rendering a workout marker on the map with popup content
   _renderWorkoutMarker(workout) {
-    let layer = L.marker(workout.coords)
+    let marker = L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -334,9 +337,12 @@ class App {
           : `🚴 ${workout.description}`
       )
       .openPopup();
-    this.#layers.push(layer);
+
+    // Saving the marker to markers array
+    this.#markers.push(marker);
   }
 
+  // Rendering/Removing overview buttons
   _renderBtns() {
     const markup = `
             <div class="overview_container">
@@ -359,6 +365,7 @@ class App {
       containerWorkouts.removeChild(overviewElement);
   }
 
+  // Creating markup for workout
   _generateMarkup(workout) {
     let html = `
     <li
@@ -415,25 +422,24 @@ class App {
     return html;
   }
 
+  // Rendering workout
   _renderWorkout(workout) {
     form.insertAdjacentHTML('afterend', this._generateMarkup(workout));
   }
 
+  // Moving to workout marker on map upon workout click
   _moveToPopup(e) {
+    // Getting the clicked workout element
     this.#workoutEl = e.target.closest('.workout');
-
-    if (
-      e.target.classList.contains('dropbtn') ||
-      e.target.classList.contains('hover')
-    )
-      return;
 
     if (!this.#workoutEl) return;
 
+    // Getting the clicked workout
     const workout = this.#workouts.find(
       work => work.id === this.#workoutEl.dataset.id
     );
 
+    // Setting the view to clicked workout marker
     this.#map.setView(workout.coords, this.#mapZoomLvl, {
       animate: true,
       pan: {
@@ -442,15 +448,18 @@ class App {
     });
   }
 
+  // Saving the workouts to local storage
   _setLocalStorage() {
     localStorage.setItem('workouts', JSON.stringify(this.#workouts));
   }
 
+  // Getting the workouts from local storage
   _getLocalStorage() {
     const data = JSON.parse(localStorage.getItem('workouts'));
 
     if (!data) return;
 
+    // Original version, does not re-create the workouts
     // this.#workouts = data;
 
     // For recreating the object
@@ -476,9 +485,11 @@ class App {
       }
     });
 
+    // Rendering the workouts from local storage
     this.#workouts.forEach(work => this._renderWorkout(work));
   }
 
+  // Updating the local storage with new workouts
   _updateLocalStorage() {
     localStorage.removeItem('workouts');
     localStorage.setItem('workouts', JSON.stringify(this.#workouts));
@@ -490,13 +501,16 @@ class App {
     const btn = e.target.closest('.edit');
     if (!btn) return;
 
+    // Setting the workout form to edit mode
     this.#add = false;
     this.#edit = true;
+
+    // Saving the clicked element to new property as the old one will be reassigned when form is submited, to null
     this.#editEl = this.#workoutEl;
 
     // Finding out the workout that was clicked
     this.#clickedWorkout = this.#workouts.find(
-      work => work.id === this.#workoutEl.dataset.id
+      work => work.id === this.#editEl.dataset.id
     );
 
     this.#index = this.#workouts.indexOf(this.#clickedWorkout);
@@ -526,11 +540,12 @@ class App {
       inputDuration.value = this.#clickedWorkout.duration;
       inputElevation.value = this.#clickedWorkout.elevationGain;
     }
+
+    // Open the form for editing with original values
     this._showForm();
   }
 
   _deleteWorkout(e) {
-    // this.#workoutEl = e.target.closest('.workout');
     if (e.target.closest('.delete')) {
       const clickedWorkout = this.#workouts.find(
         work => work.id === this.#workoutEl.dataset.id
@@ -538,15 +553,15 @@ class App {
       const index = this.#workouts.indexOf(clickedWorkout);
       this.#workouts.splice(index, 1);
 
-      // Delete workouts from local storage
+      // Update workouts in the local storage
       this._updateLocalStorage();
 
-      // Workout element to be deleted
-      const clickedWorkoutEl = e.target.closest('.workout');
-      e.target.closest('.workouts').removeChild(clickedWorkoutEl);
-      this.#layers[index].remove();
-      this.#layers.splice(index, 1);
-      console.log(index, this.#layers, this.#workouts);
+      // Removing the deleted workout from rendered list
+      e.target.closest('.workouts').removeChild(this.#workoutEl);
+
+      // Removing the deleted workout marker from map
+      this.#markers[index].remove();
+      this.#markers.splice(index, 1);
     }
     this._renderBtns();
   }
@@ -555,13 +570,14 @@ class App {
     if (e.target.classList.contains('delete_all')) {
       this.#workouts = [];
       this._removeElementsByClass('workout');
-      this.#layers.forEach(layer => layer.remove());
+      this.#markers.forEach(marker => marker.remove());
       this._renderBtns();
 
       // Delete workouts from local storage
       this._updateLocalStorage();
     }
   }
+
   _displaySortOptions(e) {
     const btn = e.target.closest('.sort');
     if (btn) document.querySelector('.options').classList.toggle('show');
@@ -574,7 +590,7 @@ class App {
   }
 
   _removeElementsByClass(className) {
-    // For updating workouts list on sort
+    // For clearing all rendered workouts, for sort or delete all
     const elements = document.getElementsByClassName(className);
     while (elements.length > 0) {
       elements[0].parentNode.removeChild(elements[0]);
@@ -604,6 +620,7 @@ class App {
     }
   }
 
+  // Developer purpose only
   // reset() {
   //   localStorage.removeItem('workouts');
   //   location.reload();
@@ -612,13 +629,3 @@ class App {
 
 const app = new App();
 // app.reset();
-/*
-      <div class="dropdown">
-        <button class="dropbtn">&hellip;</button>
-        <div class="dropdown--content">
-          <a class="hover edit">Edit</a>
-          <a class="hover delete">Delete</a>
-          <a class="hover delete__all">Delete All</a>
-          <a class="hover sort">Sort</a>
-        </div>
-      </div> */

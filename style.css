@@ -169,7 +169,7 @@ a:visited {
 
 .invalid__message {
   /* transform: translate(55%); */
-  font-size: 168%;
+  font-size: 145%;
   padding-top: 8px;
   color: #ffb545;
   font-family: Georgia, 'Times New Roman', Times, serif;
